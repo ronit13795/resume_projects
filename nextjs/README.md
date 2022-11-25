@@ -1,6 +1,6 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
- meetups website- show all meet up with description , and option to add more meet up 
+ meetups website- show all meet ups, descriptions , and option to add more meet up 
  
 
 ## Getting Started
