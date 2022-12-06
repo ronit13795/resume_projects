@@ -1,0 +1,18 @@
+.admin-container {
+  font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  width: 50%;
+  margin: 0 auto;
+  min-height: 600px;
+  text-align: center;
+}
+
+.admin-container h1 {
+  color: #2e7d32;
+  margin-bottom: 30px;
+}
+
+
+
+.survey-body button:hover {
+  border: 2px solid #19b394;
+}
