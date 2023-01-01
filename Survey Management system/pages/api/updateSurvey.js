@@ -1,32 +1,45 @@
 import dbConnect from "../../lib/dbConnect";
 import surveyModel from "../../models/survey";
 import adminModel from "../../models/admin";
+import jwt from "jsonwebtoken";
 
 async function updateSurvey(req, res) {
   await dbConnect();
 
   if (req.method === "PUT") {
-    let myAdmin = await adminModel.findOne({
-      userName: req.headers["user-name"],
-      password: req.headers.password,
-    });
+    if (req.headers["access-token"]) {
+      const token = req.headers["access-token"];
 
-    if (myAdmin) {
-      let survey = await surveyModel.find();
-      let newSurvey = req.body;
-      if (!survey.length) {
-        let survey = new surveyModel(newSurvey);
-        survey = await survey.save();
-        return res.json({ success: true });
+      if (!token) {
+        return res.json({ success: false, msg: "token required" });
       }
-      await surveyModel.update({ _id: survey[0]._id }, newSurvey);
+      try {
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+      } catch (err) {
+        return res.json({ success: false, msg: "invalid token" });
+      }
+    }
+
+    let newSurvey = req.body;
+    let myId = req.headers["id"];
+
+    if (myId !== "new") {
+      await surveyModel.replaceOne({ _id: myId }, newSurvey);
       return res.json({ success: true });
     } else {
-      res.json({ success: false, msg: "you are not admin" });
+      await surveyModel.insertMany(newSurvey);
+      return res.json({ success: true });
     }
-  } else {
-    res.json({ success: false });
   }
+  res.json({ success: false });
 }
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "10mb",
+    },
+  },
+};
 
 export default updateSurvey;

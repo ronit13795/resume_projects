@@ -11,6 +11,7 @@ const DynamicForm = dynamic(() => import("../../components/Form"), {
 export default function Survey({ survey }) {
   const [userPassword, setUserPassword] = useState(null);
   const [openModal, setOpenModal] = useState(!!survey.surveyPw);
+  const [button, setButton] = useState(false);
   const checkValidPassword = () => {
     if (survey.surveyPw === userPassword) return setOpenModal(false);
   };
@@ -22,7 +23,12 @@ export default function Survey({ survey }) {
       />
     );
   }
-  return <DynamicForm survey={survey} />;
+  return (
+    <div>
+      <DynamicForm survey={survey} setButton={setButton} />;
+      {button && <button>ok</button>}
+    </div>
+  );
 }
 
 export async function getServerSideProps(context) {

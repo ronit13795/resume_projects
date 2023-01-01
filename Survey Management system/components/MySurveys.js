@@ -6,6 +6,7 @@ import { Button } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useSession, signOut } from "next-auth/react";
 
 export default function MySurveys({
   setNewSurvey,
@@ -19,12 +20,28 @@ export default function MySurveys({
   setSurveyPw,
   setId,
   host,
+  setCategory,
 }) {
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  if (typeof window !== "undefined") {
+    if (!session && !localStorage.getItem("accessToken")) {
+      console.log(session);
+      router.push("/Login");
+    }
+  }
+
   let creator;
   let userName;
   if (typeof window !== "undefined") {
-    creator = jwt.decode(localStorage.getItem("accessToken"));
-    userName = creator.userName;
+    if (session) {
+      userName = session.user.email;
+    } else {
+      creator = jwt.decode(localStorage.getItem("accessToken"));
+
+      userName = creator?.userName;
+    }
   }
 
   const [surveys, setSurveys] = useState([]);
@@ -33,26 +50,28 @@ export default function MySurveys({
   });
 
   useEffect(() => {
-    fetch("/api/getMySurveys", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ creator: userName }),
-    })
-      .then((res) => {
-        return res.json();
+    if (userName) {
+      fetch("/api/getMySurveys", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ creator: userName }),
       })
-      .then((json) => {
-        if (json.success) {
-          setSurveys(json.surveys);
-        } else alert(json.msg);
-      })
-      .catch((err) => {
-        console.log(err);
-        alert("fatal error please try again latter");
-      });
+        .then((res) => {
+          return res.json();
+        })
+        .then((json) => {
+          if (json.success) {
+            setSurveys(json.surveys);
+          } else alert(json.msg);
+        })
+        .catch((err) => {
+          console.log(err);
+          alert("fatal error please try again latter");
+        });
+    }
   }, [MySurveys, newSurvey]);
 
   const deleteSurvey = (indexToDelete) => {
@@ -74,6 +93,14 @@ export default function MySurveys({
       >
         New Survey
       </Button>
+      <button
+        onClick={() => {
+          signOut();
+          localStorage.removeItem("accessToken");
+        }}
+      >
+        sign out
+      </button>
 
       {surveys.map((mySurvey, index) => {
         return (
@@ -89,6 +116,7 @@ export default function MySurveys({
             setTimePage={setTimePage}
             setTimeFinish={setTimeFinish}
             setSurveyPw={setSurveyPw}
+            setCategory={setCategory}
             setId={setId}
             host={host}
           />

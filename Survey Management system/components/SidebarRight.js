@@ -1,19 +1,68 @@
-import {useState} from 'react'
+import { useState } from "react";
 import Drawer from "@mui/material/Drawer";
 import Toolbar from "@mui/material/Toolbar";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/router";
 import Button from "@mui/material/Button";
+import SurveyPassword from "./SurveyPassword";
+import jwt from "jsonwebtoken";
+import { useSession } from "next-auth/react";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import FormHelperText from "@mui/material/FormHelperText";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
 
-
-export default function SidebarRight({questions, setQuestions, numOfQuestions}) {
-
-  const [title, setTitleName] = useState("");
-  const [maxTimeToFinishPage, setTimePage] = useState("");
-  const [maxTimeToFinish, setTimeFinish] = useState("");
-
-  const router = useRouter();
+export default function SidebarRight({
+  questions,
+  setPages,
+  pages,
+  addPage,
+  setNewSurvey,
+  setMySurveys,
+  title,
+  setTitleName,
+  maxTimeToFinishPage,
+  setTimePage,
+  maxTimeToFinish,
+  setTimeFinish,
+  surveyPw,
+  setSurveyPw,
+  _id,
+  setId,
+  category,
+  setCategory,
+}) {
+  const [showSurveyPassword, setShowSurveyPassword] = useState(false);
+  const optionsForCategory = [
+    "health",
+    "leisure",
+    "recreation",
+    "Working",
+    "Society",
+    "technology",
+    "science",
+    "culture",
+    "Habits",
+    "Social Sciences",
+    "Behavioral Sciences",
+    "hobbies",
+    "Social Network",
+    "Studies",
+    "general",
+  ];
+  const { data: session } = useSession();
+  let creator;
+  let userName;
+  if (typeof window !== "undefined") {
+    if (session) {
+      userName = session.user.email;
+    } else {
+      creator = jwt.decode(localStorage.getItem("accessToken"));
+      userName = creator.userName;
+    }
+  }
 
   const buildSurvey = () => {
     const firstPage = {
@@ -31,9 +80,10 @@ export default function SidebarRight({questions, setQuestions, numOfQuestions}) 
       ],
     };
 
-    let pages = [firstPage, ...questions];
+    let completePages = [firstPage, ...pages];
 
     const surveyPlaceholder = {
+      category: category || "general",
       title: title || "empty title",
       showProgressBar: "bottom",
       showTimerPanel: "top",
@@ -41,8 +91,11 @@ export default function SidebarRight({questions, setQuestions, numOfQuestions}) 
       maxTimeToFinish: Number(maxTimeToFinish) || 25,
       firstPageIsStarted: true,
       startSurveyText: "Start Quiz",
-      pages,
+      pages: completePages,
+      surveyPw,
+      creator: userName,
       completedHtml: "<h4>thank you for your time.</h4>",
+
       // completedHtmlOnCondition: [
       //   {
       //     expression: "{correctAnswers} == 0",
@@ -58,16 +111,19 @@ export default function SidebarRight({questions, setQuestions, numOfQuestions}) 
     return surveyPlaceholder;
   };
 
+  let user = session
+    ? { userName: session.user.email }
+    : { "access-token": localStorage.getItem("accessToken") };
+
   const sendSurvey = () => {
-    
     const survey = buildSurvey(questions);
     fetch("/api/updateSurvey", {
       method: "PUT",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        "user-name": localStorage.getItem("user-name"),
-        password: localStorage.getItem("password"),
+        ...user,
+        id: _id,
       },
       body: JSON.stringify(survey),
     })
@@ -84,17 +140,42 @@ export default function SidebarRight({questions, setQuestions, numOfQuestions}) 
         console.log(err);
         alert("fatal error please try again latter");
       });
+    setId("new");
   };
 
   const resetAll = () => {
     setTitleName("");
     setTimeFinish("");
     setTimePage("");
-    setQuestions([]);
+    setPages([]);
+    setCategory("");
+  };
+
+  const questionsSum = () => {
+    let counter = 0;
+    pages
+      .map((page) => {
+        return page.elements.length;
+      })
+      .forEach((length) => {
+        counter += length;
+      });
+    return counter;
+  };
+
+  const surveyPassword = () => {
+    if (showSurveyPassword === true) {
+      return (
+        <SurveyPassword
+          setSurveyPw={setSurveyPw}
+          setShowSurveyPassword={setShowSurveyPassword}
+        />
+      );
+    }
   };
 
   return (
-    <div className='right-bar-side-container'>
+    <div className="right-bar-side-container">
       <Drawer
         sx={{
           width: 310,
@@ -107,19 +188,21 @@ export default function SidebarRight({questions, setQuestions, numOfQuestions}) 
         variant="permanent"
         anchor="right"
       >
-        
-
         <Toolbar>
-          <Typography variant="h5" noWrap component="div" style={{marginLeft:'75px'}}>
+          <Typography
+            variant="h5"
+            noWrap
+            component="div"
+            style={{ marginLeft: "75px" }}
+          >
             Properties
           </Typography>
         </Toolbar>
         <hr />
-        
+
         <Divider>
-        <Toolbar>
-          
-          <input
+          <Toolbar>
+            <input
               value={title}
               onChange={(e) => {
                 setTitleName(e.target.value);
@@ -127,13 +210,13 @@ export default function SidebarRight({questions, setQuestions, numOfQuestions}) 
               type="text"
               placeholder="Survey Title..."
             />
-            </Toolbar>
-          </Divider>
+          </Toolbar>
+        </Divider>
 
-              <hr/>
+        <hr />
 
-          <Divider>
-            <Toolbar>
+        <Divider>
+          <Toolbar>
             <input
               value={maxTimeToFinishPage}
               onChange={(e) => {
@@ -146,17 +229,14 @@ export default function SidebarRight({questions, setQuestions, numOfQuestions}) 
                 }
               }}
               placeholder="Time for each question..."
-            /> 
+            />
+          </Toolbar>
+        </Divider>
 
-              
-            
-            </Toolbar>
-          </Divider>
+        <hr />
 
-          <hr/>
-
-          <Divider>
-            <Toolbar>
+        <Divider>
+          <Toolbar>
             <input
               value={maxTimeToFinish}
               onChange={(e) => {
@@ -170,21 +250,95 @@ export default function SidebarRight({questions, setQuestions, numOfQuestions}) 
               }}
               placeholder="Time for the entire survey..."
             />
-            </Toolbar>
-          </Divider>
+          </Toolbar>
+        </Divider>
 
-          <hr />
+        <hr />
 
-          <Divider>
-            <Toolbar>
-              <p>Number Of Question: {questions.length}</p>
-            </Toolbar>
-          </Divider>
+        <Divider>
+          <Toolbar>
+            <p>Number Of Question: {questionsSum()} </p>
+          </Toolbar>
+        </Divider>
 
-          <hr />
+        <hr />
+        <Divider>
+          <Toolbar>
+            <Button
+              size="small"
+              onClick={() => {
+                addPage();
+              }}
+            >
+              add page
+            </Button>
+          </Toolbar>
+        </Divider>
 
-          <Toolbar style={{bottom:'0', position:'fixed'}}>
-          <Button style={{margin: '25px'}}
+        <hr />
+        <Divider>
+          <Toolbar>
+            <FormControl required sx={{ m: 1, minWidth: 122 }}>
+              <InputLabel id="demo-simple-select-required-label">
+                choose category for this survey
+              </InputLabel>
+              <Select
+                labelId="demo-simple-select-required-label"
+                id="demo-simple-select-required"
+                value={category}
+                label="Category*"
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  console.log(category);
+                }}
+              >
+                {optionsForCategory.map((category, i) => {
+                  return (
+                    <MenuItem key={i} value={category}>
+                      {category}
+                    </MenuItem>
+                  );
+                })}
+              </Select>
+              <FormHelperText>Required</FormHelperText>
+            </FormControl>
+          </Toolbar>
+        </Divider>
+
+        <Divider>
+          <Toolbar>
+            <Button
+              onClick={() => {
+                setShowSurveyPassword(!showSurveyPassword);
+              }}
+              color="success"
+              variant="contained"
+            >
+              Survey Password
+            </Button>
+          </Toolbar>
+        </Divider>
+        <hr />
+        {surveyPassword()}
+
+        <Divider>
+          <Toolbar>
+            <Button
+              onClick={() => {
+                setNewSurvey(false);
+                setMySurveys(true);
+              }}
+              color="success"
+              variant="contained"
+            >
+              My Surveys
+            </Button>
+          </Toolbar>
+        </Divider>
+
+        <Toolbar style={{ bottom: "0", position: "fixed" }}>
+          <Button
+            className="barBtn"
             onClick={() => {
               sendSurvey();
             }}
@@ -194,23 +348,22 @@ export default function SidebarRight({questions, setQuestions, numOfQuestions}) 
             Save
           </Button>
 
-          <Button style={{margin: '25px'}}
+          <Button
+            className="barBtn"
             onClick={() => {
-              let confrimDelete = confirm("Are sure you want to delete the survey?");
-              if(confrimDelete) 
-                resetAll()     
+              let confirmDelete = confirm(
+                "Are sure you want to delete the survey?"
+              );
+              if (confirmDelete) resetAll();
             }}
-            color="success"
+            color="error"
             variant="contained"
           >
-            Cancel
+            Discard
           </Button>
         </Toolbar>
-
         <Divider />
       </Drawer>
     </div>
-
-    
   );
 }
